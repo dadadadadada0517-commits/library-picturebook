@@ -326,11 +326,14 @@ async function boot() {
   window.capture = (t, q) => { render(t); return cv.toDataURL('image/jpeg', q || 0.92); };
   if (location.search.includes('capture')) { window.ready = true; return; }
   const au = document.getElementById('au'), bar = document.getElementById('bar');
-  const loop = () => { render(au.currentTime); bar.value = au.currentTime; requestAnimationFrame(loop); }; loop();
+  // 聲音比畫面短的段（第三段最後 4 秒沒有聲音）：聲音播完後用時鐘把畫面走完
+  let endedAt = 0, done = false; const next = () => { const n = +(typeof PART === 'undefined' ? 1 : PART) + 1; if (n <= 3) location.href = `?part=${n}&auto`; };
+  const now = () => endedAt ? Math.min(DUR, au.duration + (performance.now() - endedAt) / 1000) : au.currentTime;
+  const loop = () => { const t = now(); render(t); bar.value = t; if (endedAt && t >= DUR - 0.01 && !done) { done = true; next(); } requestAnimationFrame(loop); }; loop();
   cv.onclick = () => au.paused ? au.play() : au.pause(); bar.oninput = () => { au.currentTime = +bar.value; };
-  bar.max = DUR; const hint = document.getElementById('hint'); if (hint) { au.onplay = () => hint.style.display = 'none'; hint.onclick = cv.onclick; }
+  bar.max = DUR; const hint = document.getElementById('hint'); if (hint) hint.onclick = cv.onclick;
   // 一段播完自動接下一段
-  au.onended = () => { const n = +(typeof PART === 'undefined' ? 1 : PART) + 1; if (n <= 3) location.href = `?part=${n}&auto`; };
+  au.onended = () => { endedAt = performance.now(); }; au.onseeking = au.onplay = () => { endedAt = 0; done = false; if (hint) hint.style.display = 'none'; };
   if (location.search.includes('auto')) au.play().catch(() => { if (hint) hint.style.display = ''; });
   const m = location.search.match(/[?&]t=([\d.]+)/); if (m) { const tt = +m[1]; au.readyState ? au.currentTime = tt : au.addEventListener('loadedmetadata', () => { au.currentTime = tt; }, { once: true }); }
   window.ready = true;
