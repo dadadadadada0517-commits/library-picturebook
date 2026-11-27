@@ -1,0 +1,11 @@
+# 原片影像不公開（只放聲音）
+src/*.mp4
+# 輸出與暫存
+out/
+work/
+node_modules/
+.claude/
+.DS_Store
+# 生圖時的紀錄檔
+*.jsonl
+*.err
